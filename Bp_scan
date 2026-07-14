@@ -1,0 +1,175 @@
+"""
+Numerical falsification for the trainability claims about quantized neurons
+(He-Liu-Wilde, arXiv:2607.05000).
+
+Model: f(theta, rho) = Tr[ tanh(H(theta)/T) rho ],  H = TFIM chain
+       H = sum_i W_i Z_i Z_{i+1} + sum_i w_i X_i
+Gradient computed EXACTLY via eigendecomposition + Daleckii-Krein divided
+differences (numerically stabilized), w.r.t. a bulk transverse-field
+parameter w_{n/2}.
+
+Ensembles:
+  centered: W_i, w_i ~ N(0,1); data = Haar-random product states
+  drifted : W_i, w_i ~ N(1,1); data = product states polarized near |+>^n
+            (mean energy Ebar ~ n  >>  quantum width sigma_Q ~ sqrt(n))
+
+Temperatures: T in {1, sqrt(n), n}.
+
+Per sample we also record the closed-form prediction implied by step (c)
+of the proof sketch (cumulant/CLT factorization). Using the identity
+mu_hat(s) = E_{t~mu}[e^{ist}] = sech^2(s)  (differentiate the paper's
+integral representation g_T(x) = E_mu[e^{itx/T}/(it)]), the factorized
+gradient is
+
+   d_j f  ~=  (Tr[H_j rho]/T) * E_{Z~N(0,1)}[ sech^2( (Ebar + sigma_Q Z)/T ) ]
+
+i.e. the classical neuron gain sech^2/T with the preactivation Gaussian-
+smeared over the quantum energy fluctuation sigma_Q. Testing this per
+sample tests the entire proof strategy at once.
+"""
+import numpy as np, json, time, sys
+
+# ---------- numerically stable pieces ----------
+def logcosh(x):
+    ax = np.abs(x)
+    return ax + np.log1p(np.exp(-2.0 * ax)) - np.log(2.0)
+
+def sech2(x):
+    return np.exp(-2.0 * logcosh(x))
+
+def dd_tanh(lam, T):
+    """DD_{kl} = (tanh(l_k/T) - tanh(l_l/T)) / (l_k - l_l)  > 0, stable.
+    Uses tanh a - tanh b = sinh(a-b) / (cosh a cosh b)."""
+    a = lam / T
+    A, B = a[:, None], a[None, :]
+    D = np.abs(A - B)
+    with np.errstate(divide='ignore', invalid='ignore'):
+        logsinh = D + np.log1p(-np.exp(-2.0 * D)) - np.log(2.0)
+        logDD = logsinh - np.log(D * T) - logcosh(A) - logcosh(B)
+    DD = np.exp(np.clip(logDD, -745.0, 300.0))
+    bad = ~np.isfinite(DD)
+    if bad.any():
+        s2 = sech2(a) / T
+        avg = 0.5 * (s2[:, None] + s2[None, :])
+        DD[bad] = avg[bad]
+    return DD
+
+# ---------- model ----------
+def tfim_H(n, W, w):
+    N = 1 << n
+    bits = (np.arange(N)[:, None] >> np.arange(n)[None, :]) & 1
+    z = 1 - 2 * bits                      # spin values +-1, column i = site i
+    diag = (z[:, :-1] * z[:, 1:]).astype(float) @ W
+    H = np.zeros((N, N))
+    idx = np.arange(N)
+    H[idx, idx] = diag
+    for i in range(n):
+        H[idx, idx ^ (1 << i)] += w[i]
+    return H
+
+def haar_product(n, rng):
+    psi = np.array([1.0 + 0j])
+    for _ in range(n):
+        v = rng.normal(size=2) + 1j * rng.normal(size=2)
+        v /= np.linalg.norm(v)
+        psi = np.kron(psi, v)
+    return psi
+
+def biased_product(n, rng, spread=0.25):
+    psi = np.array([1.0 + 0j])
+    for _ in range(n):
+        b = np.array([1.0, 0.0, 0.0]) + spread * rng.normal(size=3)
+        b /= np.linalg.norm(b)
+        th = np.arccos(np.clip(b[2], -1, 1)); ph = np.arctan2(b[1], b[0])
+        v = np.array([np.cos(th / 2), np.exp(1j * ph) * np.sin(th / 2)])
+        psi = np.kron(psi, v)
+    return psi
+
+# Gauss-Hermite nodes for E_{Z~N(0,1)}
+_gh_x, _gh_w = np.polynomial.hermite.hermgauss(61)
+def gauss_expect_sech2(mean, sig, T):
+    vals = sech2((mean + np.sqrt(2.0) * sig * _gh_x) / T)
+    return float(np.sum(_gh_w * vals) / np.sqrt(np.pi))
+
+# ---------- one sample: exact gradient + prediction ----------
+def sample_gradients(n, ensemble, rng, Ts):
+    N = 1 << n
+    jx = n // 2
+    if ensemble == 'centered':
+        W = rng.normal(0.0, 1.0, n - 1); w = rng.normal(0.0, 1.0, n)
+        psi = haar_product(n, rng)
+    else:
+        W = rng.normal(1.0, 1.0, n - 1); w = rng.normal(1.0, 1.0, n)
+        psi = biased_product(n, rng)
+    H = tfim_H(n, W, w)
+    # ensemble diagnostics on the state
+    Hpsi = H @ psi
+    Ebar = float(np.real(np.vdot(psi, Hpsi)))
+    sig2 = max(float(np.real(np.vdot(Hpsi, Hpsi))) - Ebar ** 2, 0.0)
+    sig = np.sqrt(sig2)
+    idx = np.arange(N)
+    a_j = float(np.real(np.vdot(psi, psi[idx ^ (1 << jx)])))   # <X_jx>
+    # exact gradient
+    lam, V = np.linalg.eigh(H)
+    u = V.conj().T @ psi
+    Mx = V.T @ V[idx ^ (1 << jx)]        # V real symmetric eigenbasis
+    out = []
+    for (label, T) in Ts:
+        DD = dd_tanh(lam, T)
+        g = float(np.real(np.vdot(u, (DD * Mx) @ u)))
+        pred = a_j / T * gauss_expect_sech2(Ebar, sig, T)
+        out.append(dict(T=label, g=g, pred=pred, a=a_j, Ebar=Ebar, sig=sig))
+    return out
+
+# ---------- finite-difference validation ----------
+def fd_check(n=4, T=1.7, eps=1e-5, seed=3):
+    rng = np.random.default_rng(seed)
+    W = rng.normal(0, 1, n - 1); w = rng.normal(0, 1, n)
+    psi = haar_product(n, rng)
+    jx = n // 2
+    def f(wvec):
+        H = tfim_H(n, W, wvec)
+        lam, V = np.linalg.eigh(H)
+        u = V.conj().T @ psi
+        return float(np.real(np.vdot(u, np.tanh(lam / T) * u)))
+    wp = w.copy(); wp[jx] += eps
+    wm = w.copy(); wm[jx] -= eps
+    g_fd = (f(wp) - f(wm)) / (2 * eps)
+    H = tfim_H(n, W, w)
+    lam, V = np.linalg.eigh(H)
+    u = V.conj().T @ psi
+    idx = np.arange(1 << n)
+    Mx = V.T @ V[idx ^ (1 << jx)]
+    g_dk = float(np.real(np.vdot(u, (dd_tanh(lam, T) * Mx) @ u)))
+    return g_fd, g_dk, abs(g_fd - g_dk)
+
+# ---------- main sweep ----------
+def main(ns, S_of_n, tag):
+    rng = np.random.default_rng(20260711)
+    rows = []
+    for n in ns:
+        Ts = [('T=1', 1.0), ('T=sqrt(n)', float(np.sqrt(n))), ('T=n', float(n))]
+        for ensemble in ('centered', 'drifted'):
+            S = S_of_n[n]
+            t0 = time.time()
+            for s in range(S):
+                for rec in sample_gradients(n, ensemble, rng, Ts):
+                    rec.update(n=n, ensemble=ensemble)
+                    rows.append(rec)
+            print(f"n={n:2d} {ensemble:8s} S={S:3d} done in {time.time()-t0:7.1f}s",
+                  flush=True)
+    with open(f'/home/claude/raw_{tag}.json', 'w') as fh:
+        json.dump(rows, fh)
+    print("ALL DONE", flush=True)
+
+if __name__ == '__main__':
+    gfd, gdk, err = fd_check()
+    print(f"FD check n=4: fd={gfd:.10f}  daleckii-krein={gdk:.10f}  |diff|={err:.2e}",
+          flush=True)
+    if err > 1e-6:
+        sys.exit("FD VALIDATION FAILED")
+    mode = sys.argv[1] if len(sys.argv) > 1 else 'main'
+    if mode == 'main':
+        main([4, 6, 8, 10], {4: 300, 6: 240, 8: 160, 10: 70}, 'main')
+    elif mode == 'n12':
+        main([12], {12: 12}, 'n12')
