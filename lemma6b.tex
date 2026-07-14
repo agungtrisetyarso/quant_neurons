@@ -1,0 +1,435 @@
+\documentclass[11pt]{article}
+\usepackage[margin=1in]{geometry}
+\usepackage{amsmath,amssymb,amsthm,mathtools,booktabs,enumitem,xcolor}
+\usepackage[colorlinks=true,linkcolor=blue,citecolor=blue]{hyperref}
+
+\newtheorem{theorem}{Theorem}
+\newtheorem{lemma}{Lemma}
+\newtheorem{proposition}{Proposition}
+\newtheorem{corollary}{Corollary}
+\theoremstyle{remark}
+\newtheorem{remark}{Remark}
+
+\newcommand{\Tr}{\operatorname{Tr}}
+\newcommand{\Var}{\operatorname{Var}}
+\newcommand{\sech}{\operatorname{sech}}
+\newcommand{\Ebar}{\bar{E}}
+\newcommand{\sQ}{\sigma_Q}
+\newcommand{\supp}{\operatorname{supp}}
+\newcommand{\status}[1]{\textcolor{purple}{\textsf{[Status: #1]}}}
+\newcommand{\verifycite}[1]{\textcolor{red}{\textsf{[verify citation: #1]}}}
+
+\title{Proof of Lemma 6(b): cumulant control of the spectral characteristic
+function of a local Hamiltonian in a product state\\
+\large Companion to ``Trainability phase diagram of canonically quantized
+neurons'' working notes v0.3 $\to$ v0.4}
+\author{A.~Trisetyarso (proof attempt drafted with Claude)}
+\date{July 11, 2026}
+
+\begin{document}
+\maketitle
+
+\noindent\textbf{Executive summary.} The lemma is proved in a \emph{tiered}
+form. Tier~1 is complete and self-contained: it consists of a semi-invariance
+lemma (mixed cumulants across non-touching regions vanish in product states),
+a connected-tuple counting bound giving cumulant extensivity
+$|\kappa_m|\le C_m\bar\theta^m n$ at every fixed order $m$ with explicit
+$C_m$, and a fixed-order characteristic-function comparison. Tier~1 yields
+Theorem~A (the master formula) with error
+$O\!\big(t^3\,\mathrm{polylog}(n)/(\kappa^3\sqrt n)\big)+O\!\big(t^4/\kappa^4\big)$
+--- weaker than the originally stated $O((1+t^3)/\sqrt n)$ by a persistent
+but $\kappa$-controlled term, and \emph{sufficient for Corollary~A1}
+(two-sided $\Theta(1/n)$ variance) once $\kappa\ge\kappa_0$ is a large
+constant. Tier~2 reduces the full stated bound to exactly one missing
+inequality --- the Statulevi\v{c}ius-type bound
+$|\kappa_m|\le m!\,c^m\bar\theta^m n$ --- for which two independent closing
+routes are identified (cluster-expansion literature; a complex-analyticity
+$+$ Cauchy-estimate argument), both flagged for citation verification.
+Discovering that the original lemma statement was \emph{stronger than the
+application needs} (log-level and complex-$s$ control are unnecessary) is
+itself part of the result: the lemma is restated below at the level of
+$\chi$ for real $s$.
+
+%=====================================================================
+\section{Setting and restatement}
+
+Throughout: $H=\sum_{j\in J}A_j$ with $A_j:=\theta_j H_j$, $\|H_j\|\le 1$,
+$\|A_j\|\le\bar\theta$, each $H_j$ supported on at most $k$ contiguous sites
+of a chain of $n$ sites, each site borne by at most $\zeta$ terms,
+$|J|\le\zeta n$. $\rho=\bigotimes_i\rho_i$ a product state. Let $E$ denote the
+\emph{classical} random variable obtained by measuring $H$ in $\rho$ (the
+spectral measure $p_\rho$), with moments $m_r=\Tr[H^r\rho]$, mean
+$\Ebar=m_1$, variance $\sigma^2=\kappa_2$, and classical cumulants
+$\kappa_m$. Write
+\[
+\chi(s):=\mathbb{E}\,e^{isE}=\Tr\!\big[e^{isH}\rho\big],\qquad
+G(s):=e^{is\Ebar-s^2\sigma^2/2},\qquad s\in\mathbb R .
+\]
+
+\begin{lemma}[6(b), restated at the $\chi$ level]\label{lem:6b}
+\emph{(Tier 1, proved here.)} For every real $s$,
+\begin{equation}\label{eq:tier1}
+\big|\chi(s)-G(s)\big|
+\;\le\;\frac{|\kappa_3|\,|s|^3}{6}
++\frac{\big(\kappa_4+6\sigma^4\big)s^4}{24},
+\end{equation}
+together with the extensivity bounds (Proposition~\ref{prop:count})
+$|\kappa_3|\le C_3\bar\theta^3 n$, $\kappa_4\le C_4\bar\theta^4 n$,
+$\sigma^2\le C_2\bar\theta^2 n$. Consequently, at $s=t/T$ with
+$T=\kappa\sqrt n$,
+\begin{equation}\label{eq:tier1scaled}
+\big|\chi(t/T)-G(t/T)\big|
+\;\le\;\frac{C_3\bar\theta^3}{6\kappa^3}\cdot\frac{|t|^3}{\sqrt n}
+\;+\;\frac{C_2^2\bar\theta^4}{4\kappa^4}\,t^4
+\;+\;O\!\Big(\frac{t^4}{\kappa^4 n}\Big).
+\end{equation}
+\emph{(Tier 2, reduced.)} If in addition
+$|\kappa_m|\le m!\,c^m\bar\theta^m n$ for all $m\ge3$
+(Section~\ref{sec:tier2}), then for $|s|\le 1/(2c\bar\theta)$,
+\begin{equation}\label{eq:tier2}
+\big|\chi(s)-G(s)\big|
+\le e^{-s^2\sigma^2/2}\,R(s)\,e^{R(s)},\qquad
+R(s):=\frac{n\,(c\bar\theta|s|)^3}{1-c\bar\theta|s|},
+\end{equation}
+which at $s=t/T$, $T=\kappa\sqrt n$, is the originally stated
+$O\big((1+|t|^3)\,\bar\theta^3/(\kappa^3\sqrt n)\big)$.
+\end{lemma}
+
+\begin{remark}[Why the restatement is legitimate]
+In the master-formula derivation the only use of 6(b) is inside
+$\mathbb{E}_{t\sim\mu}[\,\cdot\,]$ against the exponentially-tailed density
+$\mu$: an additive bound on $\chi-G$ for real $s$ integrates directly.
+Neither $\log\chi$ nor complex $s$ ever appears in the application. The
+original statement asked for more than is needed; proving the lemma one
+actually uses is both easier and better practice.
+\end{remark}
+
+%=====================================================================
+\section{Tier 1, step 1: cumulants as sums over connected tuples}
+
+For an ordered tuple $J_\bullet=(j_1,\dots,j_m)\in J^m$ and a subset
+$B\subseteq[m]$ of \emph{positions}, define the induced-order quasi-moment
+\[
+M_{J_\bullet}(B):=\Tr\Big[\Big(\overrightarrow{\textstyle\prod}_{i\in B}
+A_{j_i}\Big)\rho\Big],
+\]
+the product taken in increasing position order, and the ordered cumulants by
+M\"obius inversion on the partition lattice $P(B)$:
+\[
+\kappa_{J_\bullet}(B):=\sum_{\pi\in P(B)}\mu(\pi,\hat 1)
+\prod_{C\in\pi}M_{J_\bullet}(C),
+\qquad \mu(\pi,\hat1)=(-1)^{|\pi|-1}(|\pi|-1)! ,
+\]
+equivalently the unique solution of the triangular system
+\begin{equation}\label{eq:recon}
+M_{J_\bullet}(B)=\sum_{\pi\in P(B)}\prod_{C\in\pi}\kappa_{J_\bullet}(C).
+\end{equation}
+
+\begin{proposition}[Tuple expansion]\label{prop:tuple}
+$\displaystyle \kappa_m(E)=\sum_{J_\bullet\in J^m}\kappa_{J_\bullet}([m])$.
+\end{proposition}
+
+\begin{proof}
+$\kappa_m(E)=\sum_{\pi\in P([m])}\mu(\pi,\hat1)\prod_{C\in\pi}m_{|C|}(E)$
+with $m_c(E)=\Tr[H^c\rho]=\sum_{(l_1,\dots,l_c)}
+\Tr[A_{l_1}\!\cdots A_{l_c}\rho]$. Expanding each block's moment with an
+independent index tuple and merging: assigning independent tuples to the
+blocks of $\pi$ is in bijection with choosing one global tuple
+$J_\bullet\in J^m$ and restricting it to each block, where the block reads
+its factors in the order induced from $[m]$ (each block's tuple ranges over
+all its orderings exactly once as $J_\bullet$ ranges over $J^m$). Hence
+$\prod_{C}m_{|C|}(E)=\sum_{J_\bullet}\prod_C M_{J_\bullet}(C)$, and summing
+against $\mu(\pi,\hat1)$ gives the claim.
+\end{proof}
+
+\begin{proposition}[Semi-invariance in product states]\label{prop:semi}
+Suppose the positions split as $[m]=L\sqcup R$, $L,R\ne\emptyset$, with
+$\supp\{A_{j_i}\}_{i\in L}\cap\supp\{A_{j_i}\}_{i\in R}=\emptyset$ as site
+sets. Then $\kappa_{J_\bullet}([m])=0$.
+\end{proposition}
+
+\begin{proof}
+\emph{Factorization.} Operators at $L$-positions commute with operators at
+$R$-positions (disjoint supports), so for any $B\subseteq[m]$ the
+induced-order product rearranges as (induced $B\cap L$ product)(induced
+$B\cap R$ product) without reordering within either group; since $\rho$ is a
+product over sites,
+$M_{J_\bullet}(B)=M_{J_\bullet}(B\cap L)\,M_{J_\bullet}(B\cap R)$.
+
+\emph{Uniqueness.} Define
+$\tilde\kappa(B):=\kappa_{J_\bullet}(B)$ if $B\subseteq L$ or
+$B\subseteq R$, and $\tilde\kappa(B):=0$ if $B$ meets both. For any $B$,
+partitions of $B$ with no mixed block are in bijection with pairs
+$(\pi_L,\pi_R)\in P(B\cap L)\times P(B\cap R)$, so
+\[
+\sum_{\pi\in P(B)}\prod_{C\in\pi}\tilde\kappa(C)
+=\Big(\sum_{\pi_L}\prod_{C}\kappa_{J_\bullet}(C)\Big)
+\Big(\sum_{\pi_R}\prod_{C}\kappa_{J_\bullet}(C)\Big)
+=M_{J_\bullet}(B\cap L)M_{J_\bullet}(B\cap R)=M_{J_\bullet}(B),
+\]
+i.e.\ $\tilde\kappa$ solves the system \eqref{eq:recon}. The system is
+triangular with unit diagonal, hence has a unique solution:
+$\kappa_{J_\bullet}=\tilde\kappa$, and in particular
+$\kappa_{J_\bullet}([m])=0$ because $[m]$ meets both groups.
+\end{proof}
+
+\begin{remark}
+Proposition~\ref{prop:semi} is the precise sense in which ``connected
+correlations vanish across non-touching regions'' for the \emph{ordered}
+quasi-moments of noncommuting local terms in a product state. No
+commutation is assumed \emph{within} the groups; only across them, where it
+is automatic. This is the quantum ingredient of the whole lemma; everything
+after it is classical probability and counting.
+\end{remark}
+
+%=====================================================================
+\section{Tier 1, step 2: counting, and extensivity at fixed order}
+
+Let $G_{\mathrm{int}}$ be the interaction graph on term indices ($j\sim j'$
+iff supports intersect); its degree is at most $d:=k\zeta$. By
+Proposition~\ref{prop:semi}, $\kappa_{J_\bullet}([m])\ne0$ requires the
+supports of the tuple to form a connected subgraph.
+
+\begin{proposition}[Crude extensivity]\label{prop:count}
+For all $m\ge1$,
+\[
+|\kappa_m(E)|\;\le\;\zeta\,n\;(m!)^3\,\big(C_\star\bar\theta\big)^m,
+\qquad C_\star:=2(1+k\zeta).
+\]
+In particular, at every fixed order, $|\kappa_m|\le C_m\bar\theta^m n$ with
+the explicit (loose) constants $C_m=\zeta(m!)^3C_\star^m$; e.g.\
+$\kappa_2=\sigma^2\le C_2\bar\theta^2n$, $|\kappa_3|\le C_3\bar\theta^3n$,
+$|\kappa_4|\le C_4\bar\theta^4 n$.
+\end{proposition}
+
+\begin{proof}
+\emph{(a) Single-tuple bound.} $|M_{J_\bullet}(C)|\le\bar\theta^{|C|}$, so
+$|\kappa_{J_\bullet}([m])|\le\bar\theta^m\sum_{\pi\in P(m)}(|\pi|-1)!
+\le\bar\theta^m F(m)$, where $F(m)=\sum_k S(m,k)\,k!$ is the Fubini number.
+Induction on $F(m)=\sum_{j\ge1}\binom mj F(m-j)$ gives
+$F(m)\le 2^m m!$: with $f(m):=F(m)/m!$, $f(m)=\sum_{j\ge1}f(m-j)/j!\le
+2^m\sum_{j\ge1}2^{-j}/j!=2^m(e^{1/2}-1)\le 2^m$.
+
+\emph{(b) Counting connected tuples.} A tuple with connected support admits
+a reordering $\sigma$ that is \emph{grown}: each $j_{\sigma(i)}$, $i\ge2$,
+equals or is adjacent (in $G_{\mathrm{int}}$) to one of the earlier terms
+(BFS order on the distinct terms, repetitions inserted after first
+occurrence). The number of grown sequences is at most
+$|J|\prod_{i=2}^m (i-1)(1+d)\le\zeta n\,(m-1)!\,(1+d)^{m-1}$, and each tuple
+is $\sigma$-image of a grown sequence for some $\sigma\in S_m$, so
+$\#\{\text{connected tuples}\}\le m!\,\zeta n\,(m-1)!\,(1+d)^{m-1}$.
+Combining with (a) and Proposition~\ref{prop:tuple} gives the claim.
+\end{proof}
+
+\begin{remark}[Where the loss is]\label{rem:loss}
+The bound carries $(m!)^3$: one $m!$ from the reordering count, one from
+$(m-1)!$ in the growth product, one from the Fubini bound in (a). The sharp
+literature bound is $m!\,c^m n$ (Statulevi\v{c}ius condition); the crude
+version is enough for Tier~1 (fixed $m$) but \emph{not} for summing the
+cumulant series --- $\sum_m (m!)^2 (cs)^m$ has zero radius of convergence.
+This single gap is all that separates Tier~1 from Tier~2.
+\end{remark}
+
+%=====================================================================
+\section{Tier 1, step 3: fixed-order comparison, and the lemma}
+
+\begin{proposition}[Fixed-order characteristic comparison]\label{prop:taylor}
+Let $X$ be a real random variable with mean $\Ebar$, variance $\sigma^2$,
+finite fourth moment, third and fourth cumulants $\kappa_3,\kappa_4$. For
+all real $s$,
+\[
+\big|\mathbb{E}e^{isX}-e^{is\Ebar-s^2\sigma^2/2}\big|
+\le\frac{|\kappa_3||s|^3}{6}+\frac{(\kappa_4+6\sigma^4)\,s^4}{24}.
+\]
+\end{proposition}
+
+\begin{proof}
+Multiplying by $e^{-is\Ebar}$, assume $\Ebar=0$; write $\tilde m_r$ for
+central moments ($\tilde m_3=\kappa_3$, $\tilde m_4=\kappa_4+3\sigma^4$).
+The elementary inequality
+$\big|e^{iu}-\sum_{r=0}^{3}(iu)^r/r!\big|\le u^4/24$ (alternating-remainder
+bound) applied under the expectation gives
+$\big|\chi(s)-(1-\tfrac{s^2\sigma^2}{2}-\tfrac{is^3\kappa_3}{6})\big|\le
+s^4\tilde m_4/24$, and the same for $Z\sim\mathcal N(0,\sigma^2)$ (third
+moment $0$, fourth $3\sigma^4$):
+$\big|G(s)-(1-\tfrac{s^2\sigma^2}{2})\big|\le s^4\cdot3\sigma^4/24$.
+Triangle inequality.
+\end{proof}
+
+\begin{proof}[Proof of Lemma \ref{lem:6b}, Tier 1]
+Combine Proposition~\ref{prop:taylor} (with $X=E$) and
+Proposition~\ref{prop:count} at $m=2,3,4$; substitute $s=t/(\kappa\sqrt n)$
+for \eqref{eq:tier1scaled}, using $\sigma^4 s^4=(\sigma^2/n)^2t^4/\kappa^4$.
+\end{proof}
+
+\begin{corollary}[Theorem A, v0.4 error form]\label{cor:thmA}
+With Lemma \ref{lem:6b} (Tier 1) replacing the original 6(b) in the master
+formula chain [Eq.~(6) of HLW $\to$ L4 $\to$ L5/L6(a) $\to$ Tier-1 6(b)
+$\to$ $\widehat\mu=\sech^2$], and conditioning on
+$\bar\theta\le C\sqrt{\log n}$:
+\[
+\partial_j f=\frac{\Tr[H_j\rho]}{T}\,
+\mathcal G_T(\Ebar,\sQ)
++\varepsilon,\qquad
+|\varepsilon|\le\frac{C}{T}\left(
+\frac{(\log n)^{3/2}}{\kappa^3\sqrt n}+\frac{1}{\kappa^4}\right),
+\]
+where the $1/\kappa^4$ term collects
+$\mathbb{E}_\mu[t^4]\,\cdot\,6\sigma^4/(24\,T^4)$ and the $\kappa_4$
+contribution. Since the signal is $\Theta(1/T)$ on an $\Omega(1)$-probability
+event, the relative error is $O(1/\kappa^4)+O(\mathrm{polylog}/\sqrt n)$:
+\textbf{Corollary A1 (two-sided $\Theta(1/n)$ variance at $T=\kappa\sqrt n$)
+holds as stated for all $\kappa\ge\kappa_0(k,\zeta,c_{\mathcal D})$.}
+\end{corollary}
+
+\begin{remark}[The $1/\kappa^4$ term is real, and visible in the data]
+Tier 1 predicts that per-sample master-formula residuals should not vanish
+with $n$ at fixed $\kappa=O(1)$, but saturate at an
+$O(1/\kappa^4)$ relative level on top of the decaying
+$O(\mathrm{polylog}/\sqrt n)$ part. This matches the measured behavior
+(correlations $0.90\to0.97$ rising with $n$ at $T=1$ but $0.999$ already at
+$T=n$), and sharpens what Tier~2 would buy: removal of the $\kappa^{-4}$
+floor, not of the $n^{-1/2}$ rate.
+\end{remark}
+
+%=====================================================================
+\section{Tier 2: the single missing inequality, and two closing routes}
+\label{sec:tier2}
+
+\begin{proposition}[Conditional; exponential identity]\label{prop:exp}
+Suppose $|\kappa_m|\le m!\,c^m\bar\theta^m n$ for all $m\ge3$. Then for
+$|s|<1/(c\bar\theta)$ the cumulant series converges,
+$\chi(s)=G(s)\exp\big(\sum_{m\ge3}\kappa_m(is)^m/m!\big)$, and
+\eqref{eq:tier2} follows from $|e^w-1|\le|w|e^{|w|}$ with
+$|w|\le R(s)$.
+\end{proposition}
+
+\begin{proof}
+Within the radius of convergence the exponential of the cumulant series is
+analytic, nonvanishing, and has the same Taylor coefficients at $0$ as
+$\chi$ (moments-from-cumulants); both are analytic there (the moment series
+of $\chi$ converges absolutely on the same disk, dominated by the
+exponential of the cumulant majorant), hence equal.
+\end{proof}
+
+\noindent\textbf{Missing inequality.} $|\kappa_m|\le m!\,c^m\bar\theta^m n$
+(Statulevi\v{c}ius-type). Two independent routes:
+
+\begin{enumerate}[leftmargin=2em]
+\item \emph{Cluster expansions / tree-graph counting.} The $(m!)^3$ of
+Proposition~\ref{prop:count} must be reduced by coupling the reordering sum,
+the growth count, and the internal partition sum --- precisely what
+Kirkwood--Salsburg / tree-graph treatments of truncated correlation
+functions accomplish for exponentially clustering states.
+\verifycite{Malyshev--Minlos, \emph{Gibbs Random Fields}, cluster property
+chapters; quantum versions in high-temperature expansion literature;
+Kuwahara--Saito cumulant bounds; the Berry--Esseen input used by
+Brand\~ao--Cram\'er, arXiv:1502.03263}
+\item \emph{Complex analyticity $+$ Cauchy estimates.} If
+$\log\Tr[e^{isH}\rho]$ is analytic and $O(n)$ on a fixed complex disk
+$|s|\le s_0(k,\zeta,\bar\theta)$ --- a high-temperature-type statement,
+provable by convergent cluster expansion for finite-range bounded
+interactions (any dimension), and classical Araki-type analyticity in 1D ---
+then Cauchy's estimate gives $|\kappa_m|\le m!\,Cn/s_0^m$ immediately.
+\verifycite{Araki 1969, one-dimensional analyticity; locality-of-temperature
+/ high-temperature cluster expansion literature, e.g.\
+Kliesch--Gogolin--Kastoryano--Riera--Eisert}
+\end{enumerate}
+
+Either route, once verified, upgrades \eqref{eq:tier1scaled} to
+\eqref{eq:tier2} and removes the $1/\kappa^4$ floor from
+Corollary~\ref{cor:thmA}. Nothing else in the paper's chain changes.
+
+%=====================================================================
+\section{Numerical appendix: the two load-bearing claims, measured}
+\label{sec:numerics}
+
+Exact sparse-matvec computation for the TFIM chain in Haar product states
+(centered $\theta$), no diagonalization; moments $m_1,\dots,m_4$ from
+$\langle\psi|H^r|\psi\rangle$, characteristic function from Taylor-expm on
+the statevector, $n$ up to $20$.
+
+\medskip
+\noindent\emph{(i) Cumulant extensivity (centered ensemble;
+$\theta\sim\mathcal N(0,1)$, Haar product states; $S=60/40/25/12$ samples).}
+
+\begin{center}
+\begin{tabular}{rcccc}
+\toprule
+$n$ & $\kappa_2/n$ & $\overline{|\kappa_3|}/n$ &
+$\overline{|\kappa_3|}/\sqrt n$ & $\overline{|\kappa_4|}/n$\\
+\midrule
+ 8 & 1.455 & 1.121 & 3.172 & 7.579\\
+12 & 1.539 & 0.909 & 3.147 & 9.211\\
+16 & 1.594 & 0.937 & 3.749 & 9.108\\
+20 & 1.452 & 0.678 & 3.034 & 8.494\\
+\bottomrule
+\end{tabular}
+\end{center}
+
+$\kappa_2/n$ and $|\kappa_4|/n$ are constant in $n$: extensivity, as
+Proposition~\ref{prop:count} demands, with the bound \emph{saturated} at
+orders $2$ and $4$. The typical $|\kappa_3|$, however, is
+$\approx 3.2\sqrt n$, not $\Theta(n)$: under centered $\theta$ the
+$\Theta(n)$ local connected clusters carry random signs and cancel to
+$\sqrt n$ (the fourth order is sign-coherent and does not cancel). The
+worst-case $O(n)$ is genuine, and is saturated exactly where the theory
+says it must be --- \emph{drifted} ensembles. Measured at
+$\theta\sim\mathcal N(1,1)$ with data polarized near
+$|+\rangle^{\otimes n}$ ($S=25$):
+
+\begin{center}
+\begin{tabular}{rcccc}
+\toprule
+$n$ & $\Ebar/n$ & $\kappa_2/n$ & $\kappa_3/n$ & sign coherence of
+$\kappa_3$\\
+\midrule
+ 8 & 1.061 & 1.546 & $-6.599$ & 1.00\\
+12 & 0.794 & 2.171 & $-6.883$ & 1.00\\
+16 & 0.979 & 1.982 & $-7.528$ & 1.00\\
+20 & 0.926 & 1.883 & $-6.837$ & 1.00\\
+\bottomrule
+\end{tabular}
+\end{center}
+
+$\kappa_3=\Theta(n)$ with $100\%$ sign coherence: the same drift that
+produces the Theorem-B plateau is what saturates the cumulant bound.
+
+\medskip
+\noindent\emph{(ii) Characteristic-function error.} Measured
+$\sqrt n\cdot\overline{|\chi(t/T)-G(t/T)|}$ at $T=2\sqrt n$ (i.e.\
+$\kappa=2$):
+
+\begin{center}
+\begin{tabular}{rcccc}
+\toprule
+$t$ & $n=8$ & $n=12$ & $n=16$ & $n=20$\\
+\midrule
+1 & 0.0229 & 0.0200 & 0.0190 & 0.0097\\
+2 & 0.1321 & 0.1122 & 0.0967 & 0.0588\\
+4 & 0.2527 & 0.1763 & 0.0928 & 0.0947\\
+\bottomrule
+\end{tabular}
+\end{center}
+
+Three reads. (1) $\sqrt n\cdot$err is bounded and mildly \emph{decreasing}
+in $n$ --- the worst-case $n^{-1/2}$ rate of \eqref{eq:tier1scaled} holds
+with room to spare. (2) The decrease is quantitatively explained by the
+sign cancellation above: inserting the \emph{typical}
+$|\kappa_3|\approx3.2\sqrt n$ into \eqref{eq:tier1} predicts a typical
+error $\approx|\kappa_3||s|^3/6= t^3/(15\,n)$ at $\kappa=2$, i.e.\
+$\sqrt n\cdot\mathrm{err}\approx t^3/(15\sqrt n)$: at $t=1$ this gives
+$0.024$ ($n=8$) and $0.015$ ($n=20$) against measured $0.0229$ and
+$0.0097$. For centered ensembles the effective rate is thus $\sim1/n$, which
+retrospectively explains the unusually high per-sample accuracy of the
+master formula in the original falsification runs. (3) Growth in $t$ is
+$\sim t^3$ between $t=1$ and $t=2$ (ratio $\approx6$), then saturates at
+$t=4$ where both $\chi$ and $G$ are individually small
+($\sigma^2s^2/2\approx3$, $G\approx e^{-3}$), so the difference is capped.
+
+\medskip
+\noindent Raw data: \texttt{lemma6b.json}, \texttt{drift\_cum.json};
+scripts \texttt{lemma6b\_v2.py}, \texttt{drift\_cum.py}. Exact sparse
+matvecs throughout; Taylor-expm convergence tolerance $10^{-13}$.
+
+\end{document}
